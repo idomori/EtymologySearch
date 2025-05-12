@@ -1,0 +1,98 @@
+:root {
+    --primary-color: #4A90E2; /* Light blue */
+    --text-color: #333;
+    --background-color: #f9f9f9;
+    --card-background: #ffffff;
+    --border-color: #e0e0e0;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 90%;
+    max-width: 1000px;
+    max-height: 100px;
+    margin: auto;
+    padding: 2rem 1rem;
+}
+
+header {
+    background: var(--card-background);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem 0;  /* Reduced padding */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+header h1 a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+form input[type="text"] {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    width: 250px;
+    font-size: 1rem;
+    transition: border 0.2s;
+}
+
+form input[type="text"]:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+form button {
+    padding: 0.5rem 1rem;
+    margin-left: 0.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+form button:hover {
+    background-color: #3a7dc4;
+}
+
+.home-hero {
+    text-align: center;
+    margin-top: 4rem;
+}
+
+.search-results {
+    margin-top: 2rem;
+}
+
+.result-item {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+#graph-container {
+    height: 300px; /* 1/3 of vertical space */
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: white;
+}

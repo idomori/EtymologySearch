@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Search Results for "{{ query }}"{% endblock %}
+
+{% block content %}
+<h2 style="margin-top: 1rem;">Results for "{{ query }}"</h2>
+
+<!-- Graph occupies 1/3 vertical space -->
+<div id="graph-container"></div>
+<script>
+    const graphData = {{ graph_data|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/graph.js') }}"></script>
+
+<!-- Results list -->
+<div class="search-results">
+    {% for result in results %}
+    <div class="result-item">
+        <h3>{{ result.word }}</h3>
+        <p>{{ result.definition }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
