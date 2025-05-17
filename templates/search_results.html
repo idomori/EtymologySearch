@@ -12,12 +12,15 @@
 <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
 
 <!-- Results list -->
-<div class="search-results">
-    {% for result in results %}
-    <div class="result-item">
-        <h3>{{ result.word }}</h3>
-        <p>{{ result.definition }}</p>
-    </div>
-    {% endfor %}
+{% for result in results %}
+<div class="result-item">
+    <h3>{{ result.word }} ({{ result.pos }})</h3>
+    <p><strong>Etymology:</strong> {{ result.etymology_text }}</p>
+    <p><strong>Glosses:</strong> {{ result.glosses }}</p>
+    {% if result.etymology_langs %}
+        <p><strong>Languages:</strong> {{ result.etymology_langs }}</p>
+    {% endif %}
 </div>
+{% endfor %}
+
 {% endblock %}

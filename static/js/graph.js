@@ -6,8 +6,13 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     const options = {
         nodes: { shape: 'dot', size: 20 },
-        edges: { arrows: 'to' },
-        physics: { stabilization: false },
+        edges: {
+            arrows: 'to',
+            font: { align: 'middle' },
+            labelHighlightBold: true,
+            color: { inherit: 'from' }
+        },
+        physics: { stabilization: false }
     };
     new vis.Network(container, data, options);
 });

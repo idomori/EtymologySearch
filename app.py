@@ -12,15 +12,32 @@ def search():
     query = request.args.get('q', '')
     results = search_index(query)
 
+    # Hardcoded annotated graph
     graph_data = {
-        "nodes": [{"id": "word", "label": query}],
-        "edges": []
+        "nodes": [
+            {"id": "root", "label": "*deyḱ-"},
+            {"id": "dixionare", "label": "Middle English dixionare"},
+            {"id": "dictionary", "label": "English dictionary"},
+            {"id": "dictiōnārium", "label": "Medieval Latin dictiōnārium"},
+            {"id": "dictiōnārius", "label": "Latin dictiōnārius"},
+            {"id": "diction+-ary", "label": "diction + -ary"},
+        ],
+        "edges": [
+            {"from": "root", "to": "dixionare", "label": "inh"},
+            {"from": "dixionare", "to": "dictionary", "label": "inh"},
+            {"from": "dictiōnārium", "to": "dictionary", "label": "der"},
+            {"from": "dictiōnārius", "to": "dictiōnārium", "label": "der"},
+            {"from": "diction+-ary", "to": "dictionary", "label": "surf"},
+        ]
     }
-    if results:
-        graph_data["nodes"].append({"id": "root", "label": "Proto-Indo-European"})
-        graph_data["edges"].append({"from": "root", "to": "word"})
 
-    return render_template('search_results.html', query=query, graph_data=graph_data, results=results)
+    return render_template(
+        'search_results.html',
+        query=query,
+        graph_data=graph_data,
+        results=results
+    )
+
 
 if __name__ == '__main__':
     app.run(debug=True)
