@@ -1,0 +1,69 @@
+[
+    {
+      "name": "root",
+      "args": {
+        "1": "en",
+        "2": "ine-pro",
+        "3": "*deyḱ-"
+      },
+      "expansion": ""
+    },
+    {
+      "name": "etymon",
+      "args": {
+        "1": "en",
+        "id": "Q23622",
+        "2": "inh",
+        "3": "enm>dixionare>dictionary",
+        "4": "afeq",
+        "5": "diction>?",
+        "6": "-ary>?",
+        "tree": "1"
+      },
+      "expansion": "Etymology tree\nProto-Indo-European *deyḱ-\nProto-Indo-European *déyḱti\nProto-Italic *deikō\nLatin dīcō\nProto-Indo-European *-tisder.\nProto-Italic *-tjō\nLatin -tiō\nLatin dictiō\nProto-Indo-European *-yósder.\nProto-Italic *-āsios\nLatin -ārium\nMedieval Latin dictiōnārium\nMiddle English dixionare\nEnglish dictionary"
+    },
+    {
+      "name": "inh",
+      "args": {
+        "1": "en",
+        "2": "enm",
+        "3": "dixionare"
+      },
+      "expansion": "Middle English dixionare"
+    },
+    {
+      "name": "glossary",
+      "args": {
+        "1": "learned borrowing"
+      },
+      "expansion": "learned borrowing"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "ML.",
+        "3": "dictiōnārium"
+      },
+      "expansion": "Medieval Latin dictiōnārium"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "la",
+        "3": "dictiōnārius"
+      },
+      "expansion": "Latin dictiōnārius"
+    },
+    {
+      "name": "surf",
+      "args": {
+        "1": "en",
+        "2": "diction",
+        "3": "-ary"
+      },
+      "expansion": "By surface analysis, diction + -ary"
+    }
+  ]
+  
