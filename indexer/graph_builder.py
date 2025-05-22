@@ -2,8 +2,9 @@ import requests
 import mwparserfromhell
 from collections import defaultdict
 import requests, mwparserfromhell
+from collections import defaultdict
 
-TEMPLATE_TYPES = {"inh", "der", "bor", "cal", "cog", "clq", "rel", "root"}
+TEMPLATE_TYPES = {"inh", "der", "bor", "cal", "cog", "clq", "rel", "root", "dbt", "clipping", "compound", "m", "short for", "back-form", "semantic loan", "blend", "lbor", "obor"}
 
 def fetch_templates(word: str):
     url = "https://en.wiktionary.org/w/api.php"
@@ -23,39 +24,69 @@ def fetch_templates(word: str):
         return []
 
     parsed = mwparserfromhell.parse(wikitext)
+
+
     return [t for t in parsed.filter_templates()
             if t.name.strip().lower() in TEMPLATE_TYPES]
 
+
 def parse_template_id(tpl):
-    """Return (lang, word) or None."""
+    """
+    Return a (lang, word) tuple for etymology templates, or None if this template
+    isn’t one we recognize.
+
+    Handles:
+      - inh (inherited) & bor (borrowed):
+          {{inh|<target>|<source lang>|<source word>|…}}
+          → ( source lang, source word )
+      - der (derived) & cog (cognate):
+          {{der|<source lang>|<source word>|…}}
+          {{cog|<source lang>|<source word>|…}}
+          → ( source lang, source word )
+    """
+    name = str(tpl.name).strip().lower()
     try:
-        return (tpl.get(2).value.strip(), tpl.get(3).value.strip())
-    except Exception:
+        if name in ("inh", "bor"):
+            # params: 1=target lang, 2=source lang, 3=source word
+            lang = tpl.get(2).value.strip()
+            word = tpl.get(3).value.strip()
+            return lang, word
+
+        if name in ("der", "cog"):
+            # params: 1=source lang, 2=source word
+            lang = tpl.get(1).value.strip()
+            word = tpl.get(2).value.strip()
+            return lang, word
+
+    except (IndexError, AttributeError):
+        # missing params or not a template with .get()
         return None
 
+    # other templates we’re not graphing
+    return None
 
 
 def build_clean_etymology_graph(query_word: str):
     """
-    Graph rule:
-      • Each first-level source in the query's templates gets ONE edge to the query
-      • Deeper ancestors only link to their child source (never to the query node)
-      • Relation label (inh/der/bor/…) is kept
-      • No duplicate edges
-    """
-    visited          = set()            # processed (lang, word)
-    nodes            = {}               # node_id → node dict
-    edge_set         = set()            # {(from, to, label)}
-    query_id         = f"en:{query_word}"
+    Build a two-level etymology graph.
 
-    # ── 1. collect first-level sources and their relations ───────────────────
+    • Removes self-loops
+    • Collapses duplicate edges (same from/to; merges labels)
+    """
+    visited   = set()
+    nodes     = {}                  # node_id → node dict
+    edge_set  = set()               # {(from, to, label)}
+    query_id  = f"en:{query_word}"
+    # 1. ─ first-level templates ─────────────────────────────────────────────
     first_level: dict[tuple, str] = {}
     for tpl in fetch_templates(query_word):
+        #print("tpl", tpl)
         ident = parse_template_id(tpl)
+        #print("ident", ident)
         if ident:
             first_level[ident] = tpl.name.strip()
 
-    # ── helpers ──────────────────────────────────────────────────────────────
+    # 2. ─ helpers ───────────────────────────────────────────────────────────
     def add_node(lang, word):
         nid = f"{lang}:{word}"
         if nid not in nodes:
@@ -63,18 +94,20 @@ def build_clean_etymology_graph(query_word: str):
         return nid
 
     def add_edge(src, dst, label):
-        edge_set.add((src, dst, label))        # set forbids duplicates
+        if src == dst:              # ← self-loop guard
+            return
+        edge_set.add((src, dst, label))  # set dedups identical triples
 
-    # ── 2. add the query node + edges from each first-level source ───────────
+    # 3. ─ add query node + direct sources ───────────────────────────────────
     add_node("en", query_word)
     for (lang, word), rel in first_level.items():
         src_id = add_node(lang, word)
-        add_edge(src_id, query_id, rel)        # direct, single edge
+        add_edge(src_id, query_id, rel)
 
-    # ── 3. link sources to each other (one hop deep) ────────────────────────
+    # 4. ─ link sources one hop deeper ───────────────────────────────────────
     def traverse(lang, word):
         key = (lang, word)
-        if key in visited:                     # avoid loops
+        if key in visited:
             return
         visited.add(key)
 
@@ -82,19 +115,56 @@ def build_clean_etymology_graph(query_word: str):
         for tpl in fetch_templates(word):
             child = parse_template_id(tpl)
             if not child or child not in first_level:
-                continue                       # skip outside original set
+                continue
             child_id = add_node(*child)
             add_edge(child_id, src_id, tpl.name.strip())
             traverse(*child)
-
-    for lang, word in first_level.keys():
+    #print("first_level", first_level)
+    for lang, word in first_level:
         traverse(lang, word)
 
-    # ── 4. convert edge_set → list[dict] for vis-network  ────────────────────
-    edges = [{"from": f, "to": t, "label": lbl} for f, t, lbl in edge_set]
+    # 5. ─ collapse duplicates & join labels ─────────────────────────────────
+    bucket: dict[tuple, set] = defaultdict(set)   # (from, to) → {labels}
+    for f, t, lbl in edge_set:
+        if f == t:                                # second self-loop guard
+            continue
+        bucket[(f, t)].add(lbl)
+
+    edges = [
+        {"from": f, "to": t, "label": ", ".join(sorted(lbls))}
+        for (f, t), lbls in bucket.items()
+    ]
+    
     return {"nodes": list(nodes.values()), "edges": edges}
 
 
+def _assign_levels(query_id, nodes, edges):
+    """Longest-path (DAG) rank → even layers."""
+    from collections import defaultdict
+
+    parents = defaultdict(list)
+    for e in edges:
+        parents[e["to"]].append(e["from"])
+
+    levels = {query_id: 0}
+
+    # DAG: we can topologically relax longest distance to query
+    changed = True
+    while changed:
+        changed = False
+        for node in nodes:
+            nid = node["id"]
+            if nid == query_id or nid not in parents:
+                continue
+            parent_levels = [levels[p] for p in parents[nid] if p in levels]
+            if parent_levels:
+                new_level = max(parent_levels) + 1
+                if levels.get(nid, -1) != new_level:
+                    levels[nid] = new_level
+                    changed = True
+
+    for n in nodes:
+        n["level"] = levels.get(n["id"], 1)
 
 
 # def prune_direct_edges_to_query(query_id, edges):

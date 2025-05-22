@@ -48,25 +48,42 @@ HEADERS = {
     "Referer": "https://api.cerebras.ai/",
 }
 
+vis_data_json = """
+{
+  "nodes": [
+    { "id": "<NODE_ID_1>", "label": "<LABEL_1>" },
+    { "id": "<NODE_ID_2>", "label": "<LABEL_2>" }
+  ],
+  "edges": [
+    { "from": "<NODE_ID_1>", "to": "<NODE_ID_2>", "label": "<RELATION_TYPE>" }
+  ]
+}
+"""
+
 # Create Cerebras client
 client = Cerebras(api_key=os.environ["CEREBRAS_API_KEY"])
 
 # Function to extract a clean graph from LLM
-def extract_etymology_graph(word, etymology_text):
+def extract_etymology_graph(query):
     prompt = f"""
-You are a linguistic parser. Given the etymology description below, extract a clean etymology chain in graph format. Only include direct parent-child relationships, no inferred jumps or cross-edges. Return a JSON object with "nodes" and "edges" formatted for vis-network.
+You are a linguistic parser. Given the etymology text description and below, extract a clean etymology chain in graph format. Only include direct parent-child relationships, no inferred jumps or cross-edges. Return ONLY a JSON object with "nodes" and "edges" formatted for vis-network.
 
 Each edge should be assigned a relation type from the wiktionary template types: inh =inherited, der =derived, bor =borrowed, lbor =learned borrowing, slbor =semi-learned borrowing, obor =orthographic borrowing, ubor =unadapted borrowing, abor =adapted borrowing, cal/clq =calque, pcal/pclq =partial calque, sl =semantic loan, psm =phono-semantic matching, translit =transliteration loan, cog =cognate, dbt/doublet =doublet, uder =undefined derivation, abbrev =abbreviation, acronym =acronym, initialism =initialism, clipping =clipping, back-formation =back-formation, reduplication =reduplication, spoonerism =spoonerism, onomatopoeic =onomatopoeic, uncertain/unknown =uncertain or unknown.
 
-Query word: "{word}"
-Etymology text: "{etymology_text}"
+Make sure to also include relationships to the query word like cognates, doublets, and other relationships that are mentioned in the etymology text. 
+
+In addtion, use general etymology taxonomy knowledge to infer relationship edges to the nodes other than the query node in the main parent-child chain.
+
+Query word: "{query["word"]}"
+JSON format: "{vis_data_json}"
+Etymology text: "{query["etymology_text"]}"
 """
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b",  # adjust if needed
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
-            max_tokens=1024,
+            max_tokens=2048,
         )
         content = response.choices[0].message.content
         print(f"LLM_PARSER content: {content}")
