@@ -131,5 +131,11 @@ document.addEventListener("DOMContentLoaded", function () {
     physics: false             // disable the MDS force‐directed so it’s pure hierarchy
   };
 
-  new vis.Network(container, data, options);
+    // keep a reference so we can refocus later
+  const network = new vis.Network(container, data, options);
+
+  // hook up the refocus button
+  document
+  .getElementById('refocus-button')
+  .addEventListener('click', () => network.fit());s
 });

@@ -9,11 +9,31 @@
 <body>
     <header>
         <div class="container">
-            <h1><a href="/">EtymoGraph</a></h1>
-            <form action="{{ url_for('search') }}" method="get">
+            <h1><a href="/">EtymoSearch</a></h1>
+            <!-- <form action="{{ url_for('search') }}" method="get">
                 <input type="text" name="q" placeholder="Search a word..." value="{{ request.args.get('q', '') }}">
                 <button type="submit">Search</button>
+            </form> -->
+            <form action="{{ url_for('search') }}" method="get">
+                <input
+                    type="text"
+                    name="q"
+                    placeholder="Search a word…"
+                    value="{{ request.args.get('q','') }}"
+                >
+
+                <select name="lang">
+                    {% for code,label in supported_languages %}
+                    <option value="{{ code }}"
+                        {% if request.args.get('lang','en') == code %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit">Search</button>
             </form>
+
         </div>
     </header>
     <main class="container">
@@ -21,3 +41,5 @@
     </main>
 </body>
 </html>
+
+

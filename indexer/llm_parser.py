@@ -51,8 +51,8 @@ HEADERS = {
 vis_data_json = """
 {
   "nodes": [
-    { "id": "<NODE_ID_1>", "label": "<LABEL_1>" },
-    { "id": "<NODE_ID_2>", "label": "<LABEL_2>" }
+    { "id": "<NODE_ID_1>", "label": "<LANG_1>: <WORD_1>", "level": "<LEVEL_1>" },
+    { "id": "<NODE_ID_2>", "label": "<LANG_2>: <WORD_2>", "level": "<LEVEL_2>" }
   ],
   "edges": [
     { "from": "<NODE_ID_1>", "to": "<NODE_ID_2>", "label": "<RELATION_TYPE>" }
@@ -66,17 +66,27 @@ client = Cerebras(api_key=os.environ["CEREBRAS_API_KEY"])
 # Function to extract a clean graph from LLM
 def extract_etymology_graph(query):
     prompt = f"""
-You are a linguistic parser. Given the etymology text description and below, extract a clean etymology chain in graph format. Only include direct parent-child relationships, no inferred jumps or cross-edges. Return ONLY a JSON object with "nodes" and "edges" formatted for vis-network.
+You are a linguistic parser. Given the Etymology text description and below, extract a clean etymology chain in graph format. Only include direct parent-child relationships, no inferred jumps or cross-edges. Return ONLY a JSON object (no header) with "nodes" and "edges" formatted for vis-network.
 
-Each edge should be assigned a relation type from the wiktionary template types: inh =inherited, der =derived, bor =borrowed, lbor =learned borrowing, slbor =semi-learned borrowing, obor =orthographic borrowing, ubor =unadapted borrowing, abor =adapted borrowing, cal/clq =calque, pcal/pclq =partial calque, sl =semantic loan, psm =phono-semantic matching, translit =transliteration loan, cog =cognate, dbt/doublet =doublet, uder =undefined derivation, abbrev =abbreviation, acronym =acronym, initialism =initialism, clipping =clipping, back-formation =back-formation, reduplication =reduplication, spoonerism =spoonerism, onomatopoeic =onomatopoeic, uncertain/unknown =uncertain or unknown.
+Make sure to include all etymology word nodes mentioned in the etymology text. The Query languaage can be of various languages. Sometimes the etymology text may not be provided; in this case, use general etymology knowledge. But no matter what do not output anything other than the JSON object.
+
+Each edge should be assigned a relation type from the wiktionary template types: inh =inherited, der =derived, bor =borrowed, lbor =learned borrowing, slbor =semi-learned borrowing, obor =orthographic borrowing, ubor =unadapted borrowing, abor =adapted borrowing, cal/clq =calque, pcal/pclq =partial calque, m =mentioned, sl =semantic loan, psm =phono-semantic matching, translit =transliteration loan, cog =cognate, dbt/doublet =doublet, uder =undefined derivation, abbrev =abbreviation, acronym =acronym, initialism =initialism, clipping =clipping, back-formation =back-formation, reduplication =reduplication, spoonerism =spoonerism, onomatopoeic =onomatopoeic, uncertain/unknown =uncertain or unknown.
+
+You are also provided a list of entymology templates that specifies the relationship of the words in the etymology text.
 
 Make sure to also include relationships to the query word like cognates, doublets, and other relationships that are mentioned in the etymology text. 
 
-In addtion, use general etymology taxonomy knowledge to infer relationship edges to the nodes other than the query node in the main parent-child chain.
+Make sure the edge direction adheres to etymology direction, i.e. the source word should be the parent (older language) and the target word should be the child (more recent language).
+
+The graph should not be disjointed. If there are multiple etymology chains, connect them with a common ancestor if possible.
+
+Assign levels based on the depth of the node in the graph. The query word and its cognates should be at level 0, its direct parent at level 1, and so on.
 
 Query word: "{query["word"]}"
+Query lang: "{query["lang"]}"
 JSON format: "{vis_data_json}"
 Etymology text: "{query["etymology_text"]}"
+
 """
     try:
         response = client.chat.completions.create(
@@ -86,10 +96,24 @@ Etymology text: "{query["etymology_text"]}"
             max_tokens=2048,
         )
         content = response.choices[0].message.content
-        print(f"LLM_PARSER content: {content}")
+        #print(f"LLM_PARSER content: {content}")
         try:
-            json_data = content.strip().split("```")[1]
-            return json.loads(json_data)
+            #json_data = content.strip().split("```")[1]
+            json_data = json.loads(content)
+
+
+
+            for edge in json_data.get("edges", []):
+                lbl = edge.get("label", "").lower()
+                if "cog" in lbl:
+                    edge["smooth"] = {"type": "curvedCW", "roundness": 0.3}
+                    edge["font"] = {"vadjust": -10}
+                # lift label above edge
+                # else:
+                #     edge["font"] = {"vadjust": 0, "align": "middle"}
+
+
+            return json_data
         except Exception as e:
             print("Failed to parse LLM response:", e)
             return {"nodes": [], "edges": []}
